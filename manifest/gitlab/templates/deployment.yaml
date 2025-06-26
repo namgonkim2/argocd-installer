@@ -195,14 +195,13 @@ spec:
           prometheus['enable'] = false
           prometheus['monitor_kubernetes'] = false
           puma['worker_processes'] = 2
-          grafana['enable'] = false
           nginx['client_max_body_size'] = '2500m'
-          gitlab_rails['initial_root_password'] = "password"
+          gitlab_rails['initial_root_password'] = "tmax@2323"
           nginx['ssl_protocols'] = "TLSv1.1"
           EOT
           # Add keycloak
           {{- if .Values.keycloak.enabled }}
-            kubectl -n hyperauth get secret {{ .Values.keycloak.secret }} -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/shared/keycloak.pem
+            kubectl -n {{ .Values.keycloak.namespace }} get secret {{ .Values.keycloak.secret }} -o jsonpath='{.data.tls\.crt}' | base64 -d > /tmp/shared/keycloak.pem
             cat <<EOY >> /tmp/shared/omnibus.env
             gitlab_rails['omniauth_enabled'] = true
             gitlab_rails['omniauth_allow_single_sign_on'] = ['oauth2_generic']
@@ -217,9 +216,9 @@ spec:
                     'args' => {
                     client_options: {
                             'site' => '{{ .Values.keycloak.url }}',
-                            'user_info_url' => '/auth/realms/tmax/protocol/openid-connect/userinfo',
-                            'authorize_url' => '/auth/realms/tmax/protocol/openid-connect/auth',
-                            'token_url' => '/auth/realms/tmax/protocol/openid-connect/token',
+                            'user_info_url' => '/realms/tmax/protocol/openid-connect/userinfo',
+                            'authorize_url' => '/realms/tmax/protocol/openid-connect/auth',
+                            'token_url' => '/realms/tmax/protocol/openid-connect/token',
                             'redirect_uri' => "{{ .Values.externalURL }}/users/auth/oauth2_generic/callback",
                     },
                     user_response_structure: {
@@ -253,7 +252,7 @@ spec:
           echo 'export GITLAB_OMNIBUS_CONFIG="$(cat /tmp/shared/omnibus.env)"' >> /root/.bashrc
           mkdir -p /etc/gitlab/trusted-certs
           cp /tmp/shared/keycloak.pem /etc/gitlab/trusted-certs/keycloak.pem
-          /assets/wrapper
+          /assets/init-container
         ports:
         - name: http
           containerPort: 80
